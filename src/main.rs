@@ -1,52 +1,38 @@
+mod libs;
 use input::{
 	event::{
 		keyboard::{
 			KeyState,
 			KeyboardEventTrait,
 		},
-		KeyboardEvent,
 		KeyboardEvent::Key,
 	},
 	Event,
 	Libinput,
-	LibinputInterface,
 };
-use libc::{
-	O_RDONLY,
-	O_RDWR,
-	O_WRONLY,
+use libs::{
+	open_device::Interface,
+	parse_config::parse_config,
 };
-use std::{
-	fs::{
-		File,
-		OpenOptions,
-	},
-	os::unix::{
-		fs::OpenOptionsExt,
-		io::OwnedFd,
-	},
-	path::Path,
-};
-struct Interface;
-
-impl LibinputInterface for Interface {
-	fn open_restricted(&mut self, path: &Path, flags: i32) -> Result<OwnedFd, i32> {
-		OpenOptions::new()
-			.custom_flags(flags)
-			.read((flags & O_RDONLY != 0) | (flags & O_RDWR != 0))
-			.write((flags & O_WRONLY != 0) | (flags & O_RDWR != 0))
-			.open(path)
-			.map(|file| file.into())
-			.map_err(|err| err.raw_os_error().unwrap())
-	}
-	fn close_restricted(&mut self, fd: OwnedFd) {
-		drop(File::from(fd));
-	}
-}
 
 fn main() {
 	let mut input = Libinput::new_with_udev(Interface);
 	input.udev_assign_seat("seat0").unwrap();
+	let config = parse_config();
+
+	let config_keys: Vec<Vec<u32>> = config
+		.keybinds
+		.bind
+		.iter()
+		.map(|keybind| {
+			let replaced_keys =
+				keybind.key.replace("$mod", "125").replace("return", "37").replace("space", "26");
+			let keys =
+				replaced_keys.split("+").map(|part| part.parse::<u32>().unwrap_or(0)).collect();
+			keys
+		})
+		.collect();
+	println!("{:?}", config_keys);
 	let mut key = Vec::new();
 
 	loop {
@@ -54,17 +40,18 @@ fn main() {
 		for event in input.clone().into_iter() {
 			if let Event::Keyboard(Key(event)) = event {
 				if event.key_state() == KeyState::Pressed {
-					// println!("{:?}", event.key());
 					key.push(event.key());
-					// continue;
 				}
 				if event.key_state() == KeyState::Released {
-					if (key == [125, 28]) {
-						println!("Launcing terminal");
-					} else {
-						println!("Unknown binding");
+					for keybind in &config_keys {
+						let index = config_keys.iter().position(|x| x == keybind).unwrap();
+						if &key == keybind {
+							println!("match. command: {}", config.keybinds.bind[index].command);
+						} else {
+							println!("no match")
+						}
 					}
-					if (key.len() != 0) {
+					if key.len() != 0 {
 						key.clear();
 					} else {
 						continue;
