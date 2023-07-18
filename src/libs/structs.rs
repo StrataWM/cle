@@ -19,6 +19,7 @@ pub struct KeyBinds {
 
 #[derive(Debug, Deserialize)]
 pub struct Bind {
-	pub key: String,
-	pub command: String,
+	pub keys: String,
+	pub cmd: String,
 }
+
