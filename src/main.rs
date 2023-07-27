@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 								config.keybinds.bind[index].cmd
 							);
 						} else {
-							info!("Unknown keybinding");
+							debug!("Unknown keybinding");
 						}
 					}
 					if key.len() != 0 {
