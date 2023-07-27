@@ -16,7 +16,7 @@ use libs::{
 	open_device::Interface,
 	parse_config::parse_config,
 };
-use log::info;
+use log::debug;
 use std::{
 	env::var,
 	error::Error,
@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 								.arg(&config.keybinds.bind[index].cmd)
 								.spawn()
 								.ok();
-							info!(
+							debug!(
 								"Keybinding matched!!!\n Launching: {}",
 								config.keybinds.bind[index].cmd
 							);
